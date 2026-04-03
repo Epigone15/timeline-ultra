@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeline Pro</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+}
+
+/* HEADER */
+header {
+    text-align: center;
+    padding: 15px;
+    font-size: 1.8em;
+    background: #020617;
+}
+
+/* CONTROLS */
+.controls {
+    text-align: center;
+    padding: 10px;
+}
+
+input, button, select {
+    padding: 8px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
+}
+
+button {
+    background: #38bdf8;
+    cursor: pointer;
+}
+
+/* TIMELINE BASE */
+.timeline {
+    position: relative;
+    margin: 30px;
+}
+
+/* VERTICAL */
+.vertical::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    background: #38bdf8;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+}
+
+.vertical .event {
+    width: 50%;
+    padding: 20px;
+    position: relative;
+}
+
+.vertical .left { left: 0; }
+.vertical .right { left: 50%; }
+
+.vertical .event::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #38bdf8;
+    border-radius: 50%;
+    top: 20px;
+    right: -6px;
+}
+
+.vertical .right::before {
+    left: -6px;
+}
+
+/* HORIZONTAL */
+.horizontal {
+    display: flex;
+    overflow-x: auto;
+    gap: 20px;
+}
+
+.horizontal .event {
+    min-width: 200px;
+}
+
+/* EVENT */
+.event-content {
+    background: #1e293b;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.event-content:hover {
+    background: #334155;
+}
+
+.details {
+    display: none;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+/* MOBILE */
+@media(max-width:700px){
+    .vertical .event {
+        width: 100%;
+        left: 0 !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>📜 Timeline Ultra</header>
+
+<div class="controls">
+    <input id="title" placeholder="Titre">
+    <input id="date" type="date">
+    <input id="desc" placeholder="Description">
+
+    <button onclick="addEvent()">Ajouter</button>
+
+    <select id="mode" onchange="render()">
+        <option value="vertical">Vertical</option>
+        <option value="horizontal">Horizontal</option>
+    </select>
+
+    <button onclick="exportJSON()">Export JSON</button>
+    <button onclick="exportHTML()">Export HTML</button>
+</div>
+
+<div id="timeline" class="timeline vertical"></div>
+
+<script>
+let events = [
+    {date:"2020-01-01", title:"Début", desc:"Start"},
+    {date:"2025-01-01", title:"Projet", desc:"Ton site"},
+];
+
+function render(){
+    const container = document.getElementById("timeline");
+    const mode = document.getElementById("mode").value;
+
+    container.className = "timeline " + mode;
+    container.innerHTML = "";
+
+    events.sort((a,b)=> new Date(a.date)-new Date(b.date));
+
+    events.forEach((e,i)=>{
+        const div = document.createElement("div");
+        div.className = "event " + (mode==="vertical" ? (i%2?"right":"left"):"");
+
+        div.innerHTML = `
+            <div class="event-content" onclick="toggle(this)">
+                <b>${e.title}</b><br>
+                <small>${e.date}</small>
+                <div class="details">${e.desc}</div>
+            </div>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function toggle(el){
+    const d = el.querySelector(".details");
+    d.style.display = d.style.display==="block"?"none":"block";
+}
+
+function addEvent(){
+    const t = title.value;
+    const d = date.value;
+    const desc = document.getElementById("desc").value;
+
+    if(!t||!d) return alert("Remplis mec");
+
+    events.push({title:t,date:d,desc});
+    render();
+}
+
+/* EXPORT JSON */
+function exportJSON(){
+    const data = JSON.stringify(events, null, 2);
+    download(data, "timeline.json");
+}
+
+/* EXPORT HTML */
+function exportHTML(){
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Timeline Export</title></head>
+<body style="font-family:Arial">
+<h1>Timeline</h1>
+<ul>
+${events.map(e=>`<li><b>${e.date}</b> - ${e.title} : ${e.desc}</li>`).join("")}
+</ul>
+</body>
+</html>`;
+    download(html, "timeline.html");
+}
+
+/* DOWNLOAD */
+function download(content, file){
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content]));
+    a.download = file;
+    a.click();
+}
+
+render();
+</script>
+
+</body>
+</html>
