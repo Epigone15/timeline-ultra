@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Timeline Pro</title>
+<title>Timeline Ultra</title>
 
 <style>
 body {
@@ -98,6 +98,7 @@ button {
     border-radius: 8px;
     cursor: pointer;
     transition: 0.2s;
+    position: relative;
 }
 
 .event-content:hover {
@@ -105,9 +106,53 @@ button {
 }
 
 .details {
-    display: none;
     margin-top: 5px;
     font-size: 0.9em;
+}
+
+/* CONTEXT MENU */
+.context-menu {
+    position: absolute;
+    background: #1e293b;
+    border-radius: 6px;
+    padding: 8px 0;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    min-width: 150px;
+}
+
+.context-menu.show {
+    display: block;
+}
+
+.context-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    margin: 0;
+    background: none;
+    border: none;
+    color: white;
+}
+
+.context-menu button:hover {
+    background: #334155;
+}
+
+/* EDIT MODE */
+.editing {
+    background: #0f172a;
+    border: 1px solid #38bdf8;
+}
+
+.editing input {
+    width: 100%;
+    margin: 4px 0;
+    background: #1e293b;
+    color: white;
+    border: 1px solid #38bdf8;
 }
 
 /* MOBILE */
@@ -142,11 +187,19 @@ button {
 
 <div id="timeline" class="timeline vertical"></div>
 
+<div id="contextMenu" class="context-menu">
+    <button onclick="editEvent()">Modifier</button>
+    <button onclick="deleteEvent()">Supprimer</button>
+</div>
+
 <script>
 let events = [
-    {date:"2020-01-01", title:"Début", desc:"Start"},
+    {date:"2020-01-01", title:"Début", desc:"Premier événement"},
     {date:"2025-01-01", title:"Projet", desc:"Ton site"},
 ];
+
+let currentEventIndex = -1;
+let contextMenu = document.getElementById("contextMenu");
 
 function render(){
     const container = document.getElementById("timeline");
@@ -160,9 +213,10 @@ function render(){
     events.forEach((e,i)=>{
         const div = document.createElement("div");
         div.className = "event " + (mode==="vertical" ? (i%2?"right":"left"):"");
+        div.dataset.index = i;
 
         div.innerHTML = `
-            <div class="event-content" onclick="toggle(this)">
+            <div class="event-content" oncontextmenu="showContextMenu(event, ${i})" ondblclick="startEditing(${i})">
                 <b>${e.title}</b><br>
                 <small>${e.date}</small>
                 <div class="details">${e.desc}</div>
@@ -173,20 +227,72 @@ function render(){
     });
 }
 
+function showContextMenu(e, index) {
+    e.preventDefault();
+    currentEventIndex = index;
+    contextMenu.style.left = e.pageX + "px";
+    contextMenu.style.top = e.pageY + "px";
+    contextMenu.classList.add("show");
+}
+
+document.addEventListener("click", () => {
+    contextMenu.classList.remove("show");
+});
+
+function startEditing(index) {
+    const event = events[index];
+    const eventDiv = document.querySelector(`[data-index="${index}"] .event-content`);
+
+    eventDiv.innerHTML = `
+        <input type="text" id="editTitle" value="${event.title}" placeholder="Titre">
+        <input type="date" id="editDate" value="${event.date}">
+        <input type="text" id="editDesc" value="${event.desc}" placeholder="Description">
+        <button onclick="saveEdit(${index})">Enregistrer</button>
+    `;
+    eventDiv.classList.add("editing");
+}
+
+function saveEdit(index) {
+    const title = document.getElementById("editTitle").value;
+    const date = document.getElementById("editDate").value;
+    const desc = document.getElementById("editDesc").value;
+
+    if (!title || !date) return alert("Remplis les champs !");
+
+    events[index] = { title, date, desc };
+    render();
+}
+
+function editEvent() {
+    if (currentEventIndex !== -1) {
+        startEditing(currentEventIndex);
+    }
+}
+
+function deleteEvent() {
+    if (currentEventIndex !== -1 && confirm("Supprimer cet événement ?")) {
+        events.splice(currentEventIndex, 1);
+        render();
+    }
+}
+
 function toggle(el){
     const d = el.querySelector(".details");
     d.style.display = d.style.display==="block"?"none":"block";
 }
 
 function addEvent(){
-    const t = title.value;
-    const d = date.value;
+    const t = document.getElementById("title").value;
+    const d = document.getElementById("date").value;
     const desc = document.getElementById("desc").value;
 
-    if(!t||!d) return alert("Remplis mec");
+    if(!t||!d) return alert("Remplis les champs !");
 
     events.push({title:t,date:d,desc});
     render();
+    document.getElementById("title").value = "";
+    document.getElementById("date").value = "";
+    document.getElementById("desc").value = "";
 }
 
 /* EXPORT JSON */
